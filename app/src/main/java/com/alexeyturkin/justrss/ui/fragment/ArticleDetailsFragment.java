@@ -1,6 +1,8 @@
 package com.alexeyturkin.justrss.ui.fragment;
 
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
@@ -10,6 +12,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.alexeyturkin.justrss.R;
+import com.alexeyturkin.justrss.local.model.LocalArticle;
 import com.alexeyturkin.justrss.rest.model.Article;
 import com.alexeyturkin.justrss.ui.BaseFragment;
 import com.bumptech.glide.Glide;
@@ -74,15 +77,33 @@ public class ArticleDetailsFragment extends BaseFragment {
         super.onViewCreated(view, savedInstanceState);
 
         if (getArguments() != null) {
-            Article outerArticle = getArguments().getParcelable(Article.class.getSimpleName());
+            if (getArguments().get(Article.class.getSimpleName()) instanceof Article) {
+                Article outerArticle = getArguments().getParcelable(Article.class.getSimpleName());
 
-            mTitle.setText(outerArticle.getTitle());
-            mAuthor.setText(outerArticle.getAuthor());
-            mDescription.setText(outerArticle.getDescription());
-            mLink.setText(outerArticle.getUrl());
-            Glide.with(getActivity())
-                    .load(outerArticle.getUrlToImage())
-                    .into(mFeedImage);
+                mTitle.setText(outerArticle.getTitle());
+                mAuthor.setText(outerArticle.getAuthor());
+                mDescription.setText(outerArticle.getDescription());
+                mLink.setText(outerArticle.getUrl());
+                Glide.with(getActivity())
+                        .load(outerArticle.getUrlToImage())
+                        .into(mFeedImage);
+            } else if (getArguments().get(LocalArticle.class.getSimpleName()) instanceof LocalArticle) {
+                LocalArticle outerArticle = getArguments().getParcelable(LocalArticle.class.getSimpleName());
+
+                mTitle.setText(outerArticle.getTitle());
+                mAuthor.setText(outerArticle.getAuthor());
+                mDescription.setText(outerArticle.getDescription());
+                mLink.setText(outerArticle.getUrl());
+
+                Bitmap bmp = null;
+                if (outerArticle.getCompressedImage() != null) {
+                    bmp = BitmapFactory.decodeByteArray(outerArticle.getCompressedImage(), 0, outerArticle.getCompressedImage().length);
+                }
+
+                if (bmp != null) {
+                    mFeedImage.setImageBitmap(bmp);
+                }
+            }
         }
     }
 

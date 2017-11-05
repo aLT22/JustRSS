@@ -1,6 +1,9 @@
 package com.alexeyturkin.justrss.adapter;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -12,7 +15,6 @@ import android.widget.TextView;
 import com.alexeyturkin.justrss.R;
 import com.alexeyturkin.justrss.local.model.LocalArticle;
 import com.alexeyturkin.justrss.rest.model.Article;
-import com.bumptech.glide.Glide;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,53 +23,51 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 
 /**
- * Created by Turkin A. on 02.11.2017.
+ * Created by Turkin A. on 04.11.17.
  */
 
-public class FeedRecyclerAdapter extends RecyclerView.Adapter<FeedRecyclerAdapter.ViewHolder> {
+public class LocalFeedRecyclerAdapter extends RecyclerView.Adapter<LocalFeedRecyclerAdapter.ViewHolder> {
 
-    public static final String TAG = FeedRecyclerAdapter.class.getSimpleName();
-
-
+    private static final String TAG = LocalFeedRecyclerAdapter.class.getSimpleName();
     private Context mContext;
-    private List<Article> mList;
+    private List<LocalArticle> mList;
     private OnItemClickDelegate mDelegate;
 
-    private List<LocalArticle> mLocalArticles;
-
-    public FeedRecyclerAdapter(Context context, List<Article> list, OnItemClickDelegate onItemClickDelegate) {
+    public LocalFeedRecyclerAdapter(Context context, List<LocalArticle> list, OnItemClickDelegate onItemClickDelegate) {
         this.mContext = context;
         this.mList = list;
         this.mDelegate = onItemClickDelegate;
     }
 
-    public void setLocalArticles(List<LocalArticle> localArticles) {
-        this.mLocalArticles = localArticles;
-    }
-
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(mContext);
-
         View view = inflater.inflate(R.layout.feed_item, parent, false);
-
         return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        final Article item = mList.get(position);
+        final LocalArticle item = mList.get(position);
 
-        holder.mTitle.setText(item.getTitle());
         holder.mAuthor.setText(item.getAuthor());
         holder.mDescription.setText(item.getDescription());
-        Glide.with(mContext)
-                .load(item.getUrlToImage())
-                .into(holder.mImage);
+        holder.mTitle.setText(item.getTitle());
 
-        holder.mFeedItem.setOnClickListener(new View.OnClickListener() {
+        Bitmap bmp = null;
+        if (item.getCompressedImage() != null) {
+            bmp = BitmapFactory.decodeByteArray(item.getCompressedImage(), 0, item.getCompressedImage().length);
+        }
+        /*Bitmap mutableBitmap = bmp.copy(Bitmap.Config.ARGB_8888, true);
+        Canvas canvas = new Canvas(mutableBitmap);*/
+
+        if (bmp != null) {
+            holder.mImage.setImageBitmap(bmp);
+        }
+
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
+            public void onClick(View v) {
                 mDelegate.onItemClick(item);
             }
         });
@@ -78,19 +78,19 @@ public class FeedRecyclerAdapter extends RecyclerView.Adapter<FeedRecyclerAdapte
         return mList.size();
     }
 
-    public void updateWholeFeed(List<Article> newArticles) {
+    public void updateWholeFeed(List<LocalArticle> newArticles) {
         mList = new ArrayList<>();
         mList.addAll(newArticles);
         this.notifyDataSetChanged();
     }
 
-    public void updateFeedOneByOne(Article newArticle) {
+    public void updateFeedOneByOne(LocalArticle newArticle) {
         mList.add(newArticle);
         this.notifyDataSetChanged();
     }
 
     public interface OnItemClickDelegate {
-        void onItemClick(Article item);
+        void onItemClick(LocalArticle item);
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {

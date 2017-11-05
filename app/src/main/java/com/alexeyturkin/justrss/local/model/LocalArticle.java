@@ -1,40 +1,42 @@
+package com.alexeyturkin.justrss.local.model;
 
-package com.alexeyturkin.justrss.rest.model;
 
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import com.google.gson.annotations.Expose;
-import com.google.gson.annotations.SerializedName;
+import com.alexeyturkin.justrss.rest.model.Article;
 
-public class Article implements Parcelable {
+import io.realm.RealmObject;
+import io.realm.annotations.Ignore;
+import io.realm.annotations.PrimaryKey;
 
-    @SerializedName("author")
-    @Expose
+/**
+ * Created by Turkin A. on 04.11.17.
+ */
+
+public class LocalArticle extends RealmObject implements Parcelable {
+
+    @PrimaryKey
+    private String id;
+
     private String author;
-    @SerializedName("title")
-    @Expose
+
     private String title;
-    @SerializedName("description")
-    @Expose
+
     private String description;
-    @SerializedName("url")
-    @Expose
+
     private String url;
-    @SerializedName("urlToImage")
-    @Expose
+
     private String urlToImage;
-    @SerializedName("publishedAt")
-    @Expose
+
     private String publishedAt;
 
-    private byte[] compressedImage;
+    private byte[] compressedImage = null;
 
-    public Article() {
-
+    public LocalArticle() {
     }
 
-    public Article(Parcel parcel) {
+    public LocalArticle(Parcel parcel) {
         this.author = parcel.readString();
         this.title = parcel.readString();
         this.description = parcel.readString();
@@ -42,6 +44,10 @@ public class Article implements Parcelable {
         this.urlToImage = parcel.readString();
         this.publishedAt = parcel.readString();
         this.compressedImage = parcel.createByteArray();
+    }
+
+    public String getId() {
+        return id;
     }
 
     public String getAuthor() {
@@ -106,24 +112,25 @@ public class Article implements Parcelable {
     }
 
     @Override
-    public void writeToParcel(Parcel parcel, int i) {
-        parcel.writeString(this.author);
-        parcel.writeString(this.title);
-        parcel.writeString(this.description);
-        parcel.writeString(this.url);
-        parcel.writeString(this.urlToImage);
-        parcel.writeString(this.publishedAt);
-        parcel.writeByteArray(this.compressedImage);
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(this.author);
+        dest.writeString(this.description);
+        dest.writeString(this.title);
+        dest.writeString(this.publishedAt);
+        dest.writeString(this.url);
+        dest.writeString(this.urlToImage);
+        dest.writeByteArray(this.compressedImage);
     }
 
-    public static final Parcelable.Creator<Article> CREATOR = new Parcelable.Creator<Article>() {
+    @Ignore
+    public static final Parcelable.Creator<LocalArticle> CREATOR = new Parcelable.Creator<LocalArticle>() {
         // распаковываем объект из Parcel
-        public Article createFromParcel(Parcel in) {
-            return new Article(in);
+        public LocalArticle createFromParcel(Parcel in) {
+            return new LocalArticle(in);
         }
 
-        public Article[] newArray(int size) {
-            return new Article[size];
+        public LocalArticle[] newArray(int size) {
+            return new LocalArticle[size];
         }
     };
 }

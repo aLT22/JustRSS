@@ -8,6 +8,8 @@ import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import java.io.File;
 import java.io.IOException;
 
+import io.realm.Realm;
+import io.realm.RealmObject;
 import okhttp3.Cache;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
@@ -33,6 +35,8 @@ public class JustRssApp extends Application {
 
         sInstance = this;
 
+        Realm.init(this);
+
         buildRetrofit();
     }
 
@@ -56,7 +60,7 @@ public class JustRssApp extends Application {
         };
 
         File httpCacheDirectory = new File(sInstance.getExternalCacheDir(), "responses");
-        int cacheSize = 10 * 1024 * 1024; // 10 MiB
+        int cacheSize = 50 * 1024 * 1024; // 50 MiB
         Cache cache = new Cache(httpCacheDirectory, cacheSize);
 
         OkHttpClient okHttpClient = new OkHttpClient.Builder()
