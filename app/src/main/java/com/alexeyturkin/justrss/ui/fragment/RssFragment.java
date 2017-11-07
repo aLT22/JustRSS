@@ -3,6 +3,7 @@ package com.alexeyturkin.justrss.ui.fragment;
 
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -26,8 +27,14 @@ import com.alexeyturkin.justrss.rest.model.FeedResponse;
 import com.alexeyturkin.justrss.ui.BaseFragment;
 import com.alexeyturkin.justrss.utils.AppUtilities;
 import com.bumptech.glide.Glide;
+import com.zxy.tiny.Tiny;
+import com.zxy.tiny.callback.BitmapCallback;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -77,7 +84,7 @@ public class RssFragment extends BaseFragment implements FeedRecyclerAdapter.OnI
     List<Article> mArticles = new ArrayList<>();
     List<LocalArticle> mLocalArticles = new ArrayList<>();
 
-    boolean isLoadedArticles = false;
+    boolean loadFromInternet = false, loadFromRealm = false, isLoadedArticles = false, isLoadedToRealm = false;
 
     Realm mRealm = null;
 
@@ -87,33 +94,20 @@ public class RssFragment extends BaseFragment implements FeedRecyclerAdapter.OnI
         return fragment;
     }
 
-    public static RssFragment newInstance(Bundle bundle) {
-        RssFragment fragment = new RssFragment();
-
-        fragment.setArguments(bundle);
-
-        return fragment;
-    }
-
-    //Send requests to server etc
-    @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-    }
-
-    //Initialize non-view fields here
-    //Dagger injects here
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
 
+        Realm.init(getContext());
         mRealm = Realm.getDefaultInstance();
 
         isLoadedArticles = false;
 
         mRetrofitService = JustRssApp.getRetrofitInstance().create(NewYorkTimesService.class);
         mDisposable = new CompositeDisposable();
+
+        loadArticles();
     }
 
     @Nullable
@@ -123,29 +117,31 @@ public class RssFragment extends BaseFragment implements FeedRecyclerAdapter.OnI
 
         mUnbinder = ButterKnife.bind(this, rootView);
 
+        mRealm = Realm.getDefaultInstance();
+
         mAdapter = new FeedRecyclerAdapter(getActivity(), mArticles, this);
         mLocalFeedAdapter = new LocalFeedRecyclerAdapter(getActivity(), mLocalArticles, this);
-
-        loadArticles();
 
         return rootView;
     }
 
-    //Filling views
-    //Set up adapters etc
-    //Attach adapter to views etc
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        if (AppUtilities.isOnline(getContext()) &&
+                isLoadedArticles) {
+            mFeedList.setAdapter(mAdapter);
+        } else {
+            mFeedList.setAdapter(mLocalFeedAdapter);
+        }
+
+        mFeedList.setLayoutManager(new LinearLayoutManager(getActivity()));
 
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
                 refreshArticles();
-                if (!AppUtilities.isOnline(getActivity())) {
-                    mSwipeRefreshLayout.setRefreshing(false);
-                    Toast.makeText(getActivity(), "No internet connection!", Toast.LENGTH_SHORT).show();
-                }
             }
         });
     }
@@ -177,12 +173,8 @@ public class RssFragment extends BaseFragment implements FeedRecyclerAdapter.OnI
         if (AppUtilities.isOnline(getContext()) && AppUtilities.Connectivity.isConnectedFast(getContext())) {
             mArticles.clear();
             isLoadedArticles = false;
-            mFeedList.setAdapter(mAdapter);
-            mFeedList.setLayoutManager(new LinearLayoutManager(getActivity()));
             loadFromInternet();
         } else {
-            mFeedList.setAdapter(mLocalFeedAdapter);
-            mFeedList.setLayoutManager(new LinearLayoutManager(getActivity()));
             loadFromRealm();
         }
 
@@ -190,8 +182,9 @@ public class RssFragment extends BaseFragment implements FeedRecyclerAdapter.OnI
 
     private void loadFromRealm() {
         mLocalArticles.clear();
-        mRealm = Realm.getDefaultInstance();
-        mRealm.executeTransaction(new Realm.Transaction() {
+        loadFromInternet = false;
+        loadFromRealm = true;
+        mRealm.executeTransactionAsync(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
                 RealmQuery<LocalArticle> articleRealmQuery = realm.where(LocalArticle.class);
@@ -201,18 +194,24 @@ public class RssFragment extends BaseFragment implements FeedRecyclerAdapter.OnI
         });
 
         if (mLocalArticles.size() == 0) {
-            Toast.makeText(getContext(), "Local cache is empty!", Toast.LENGTH_LONG).show();
-            mSwipeRefreshLayout.setRefreshing(false);
+            if (mSwipeRefreshLayout != null) {
+                mSwipeRefreshLayout.setRefreshing(false);
+            }
         } else {
             if (mFeedList != null && mLocalFeedAdapter != null) {
 
+                mFeedList.setAdapter(mLocalFeedAdapter);
                 mLocalFeedAdapter.updateWholeFeed(mLocalArticles);
-                mSwipeRefreshLayout.setRefreshing(false);
+                if (mSwipeRefreshLayout != null) {
+                    mSwipeRefreshLayout.setRefreshing(false);
+                }
             }
         }
     }
 
     private void loadFromInternet() {
+        loadFromInternet = true;
+        loadFromRealm = true;
         if (!isLoadedArticles) {
             mRetrofitService
                     .getObservableFeed(AppUtilities.SORT_OPTION, AppUtilities.API_KEY)
@@ -248,13 +247,12 @@ public class RssFragment extends BaseFragment implements FeedRecyclerAdapter.OnI
                         @Override
                         public void onComplete() {
                             isLoadedArticles = true;
-                            if (mSwipeRefreshLayout != null) {
-                                mSwipeRefreshLayout.setRefreshing(false);
-                            }
                             if (mAdapter != null) {
                                 mAdapter.updateWholeFeed(mArticles);
                             }
-
+                            if (mFeedList != null) {
+                                mFeedList.setAdapter(mAdapter);
+                            }
                             saveLoadedDataToRealm();
                         }
                     });
@@ -262,15 +260,14 @@ public class RssFragment extends BaseFragment implements FeedRecyclerAdapter.OnI
     }
 
     private void saveLoadedDataToRealm() {
-        mRealm.beginTransaction();
-        mRealm.deleteAll();
-        mRealm.commitTransaction();
+        isLoadedToRealm = false;
         mRealm.executeTransactionAsync(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
+                realm.delete(LocalArticle.class);
                 for (Article article :
                         mArticles) {
-                    LocalArticle localArticle = realm.createObject(LocalArticle.class, UUID.randomUUID().toString());
+                    final LocalArticle localArticle = realm.createObject(LocalArticle.class, UUID.randomUUID().toString());
 
                     localArticle.setAuthor(article.getAuthor());
                     localArticle.setTitle(article.getTitle());
@@ -280,28 +277,50 @@ public class RssFragment extends BaseFragment implements FeedRecyclerAdapter.OnI
                     localArticle.setPublishedAt(article.getPublishedAt());
 
                     try {
-                        Bitmap bitmap = Glide
-                                .with(getActivity())
-                                .asBitmap()
-                                .load(article.getUrlToImage())
-                                .into(-1, -1)
-                                .get();
-
+                        URL url = new URL(article.getUrlToImage());
+                        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                        connection.setDoInput(true);
+                        connection.connect();
+                        InputStream input = connection.getInputStream();
+                        Bitmap myBitmap = BitmapFactory.decodeStream(input);
                         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                        myBitmap.compress(Bitmap.CompressFormat.WEBP, 10, stream);
+
                         byte[] byteArray = stream.toByteArray();
 
                         localArticle.setCompressedImage(byteArray);
-                    } catch (InterruptedException | ExecutionException e) {
-                        e.printStackTrace();
+                    } catch (IOException e) {
+                        Log.e(TAG, "execute: " + e.getMessage());
                     }
                 }
+
+
+                isLoadedToRealm = true;
             }
         });
+
+        if (mSwipeRefreshLayout != null) {
+            mSwipeRefreshLayout.setRefreshing(false);
+        }
     }
 
     private void refreshArticles() {
-        loadArticles();
+        if (AppUtilities.isOnline(getContext())) {
+            if (isLoadedToRealm) {
+                loadArticles();
+            } else {
+                if (!isLoadedArticles) {
+                    loadArticles();
+                } else {
+                    if (mSwipeRefreshLayout != null) {
+                        mSwipeRefreshLayout.setRefreshing(false);
+                    }
+                }
+            }
+        } else {
+            Toast.makeText(getContext(), "No internet connection!", Toast.LENGTH_SHORT).show();
+            loadFromRealm();
+        }
     }
 
     @Override
@@ -310,18 +329,26 @@ public class RssFragment extends BaseFragment implements FeedRecyclerAdapter.OnI
         bundle.putParcelable(Article.class.getSimpleName(), item);
 
         if (getActivity().getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            getChildFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fl_details_container, ArticleDetailsFragment.newInstance(bundle), ArticleDetailsFragment.TAG)
-                    .commit();
+            showArticleDetailsLand(bundle);
         } else {
-            getActivity()
-                    .getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fl_fragment_container, ArticleDetailsFragment.newInstance(bundle), ArticleDetailsFragment.TAG)
-                    .addToBackStack(ArticleDetailsFragment.TAG)
-                    .commit();
+            showArticleDetails(bundle);
         }
+    }
+
+    private void showArticleDetails(Bundle bundle) {
+        getActivity()
+                .getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fl_fragment_container, ArticleDetailsFragment.newInstance(bundle), ArticleDetailsFragment.TAG)
+                .addToBackStack(ArticleDetailsFragment.TAG)
+                .commit();
+    }
+
+    private void showArticleDetailsLand(Bundle bundle) {
+        getChildFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fl_details_container, ArticleDetailsFragment.newInstance(bundle), ArticleDetailsFragment.TAG)
+                .commit();
     }
 
     @Override
@@ -330,17 +357,9 @@ public class RssFragment extends BaseFragment implements FeedRecyclerAdapter.OnI
         bundle.putParcelable(LocalArticle.class.getSimpleName(), item);
 
         if (getActivity().getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            getChildFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fl_details_container, ArticleDetailsFragment.newInstance(bundle), ArticleDetailsFragment.TAG)
-                    .commit();
+            showArticleDetailsLand(bundle);
         } else {
-            getActivity()
-                    .getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fl_fragment_container, ArticleDetailsFragment.newInstance(bundle), ArticleDetailsFragment.TAG)
-                    .addToBackStack(ArticleDetailsFragment.TAG)
-                    .commit();
+            showArticleDetails(bundle);
         }
     }
 }

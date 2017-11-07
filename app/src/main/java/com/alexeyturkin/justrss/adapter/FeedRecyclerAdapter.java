@@ -84,11 +84,6 @@ public class FeedRecyclerAdapter extends RecyclerView.Adapter<FeedRecyclerAdapte
         this.notifyDataSetChanged();
     }
 
-    public void updateFeedOneByOne(Article newArticle) {
-        mList.add(newArticle);
-        this.notifyDataSetChanged();
-    }
-
     public interface OnItemClickDelegate {
         void onItemClick(Article item);
     }

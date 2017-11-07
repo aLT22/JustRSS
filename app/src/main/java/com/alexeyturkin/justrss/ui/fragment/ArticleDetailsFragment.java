@@ -42,12 +42,6 @@ public class ArticleDetailsFragment extends BaseFragment {
 
     Unbinder mUnbinder = null;
 
-    public static ArticleDetailsFragment newInstance() {
-        ArticleDetailsFragment fragment = new ArticleDetailsFragment();
-
-        return fragment;
-    }
-
     public static ArticleDetailsFragment newInstance(Bundle bundle) {
         ArticleDetailsFragment fragment = new ArticleDetailsFragment();
 
@@ -78,33 +72,43 @@ public class ArticleDetailsFragment extends BaseFragment {
 
         if (getArguments() != null) {
             if (getArguments().get(Article.class.getSimpleName()) instanceof Article) {
-                Article outerArticle = getArguments().getParcelable(Article.class.getSimpleName());
-
-                mTitle.setText(outerArticle.getTitle());
-                mAuthor.setText(outerArticle.getAuthor());
-                mDescription.setText(outerArticle.getDescription());
-                mLink.setText(outerArticle.getUrl());
-                Glide.with(getActivity())
-                        .load(outerArticle.getUrlToImage())
-                        .into(mFeedImage);
+                setViewsForArticleFromInternet();
             } else if (getArguments().get(LocalArticle.class.getSimpleName()) instanceof LocalArticle) {
-                LocalArticle outerArticle = getArguments().getParcelable(LocalArticle.class.getSimpleName());
-
-                mTitle.setText(outerArticle.getTitle());
-                mAuthor.setText(outerArticle.getAuthor());
-                mDescription.setText(outerArticle.getDescription());
-                mLink.setText(outerArticle.getUrl());
-
-                Bitmap bmp = null;
-                if (outerArticle.getCompressedImage() != null) {
-                    bmp = BitmapFactory.decodeByteArray(outerArticle.getCompressedImage(), 0, outerArticle.getCompressedImage().length);
-                }
-
-                if (bmp != null) {
-                    mFeedImage.setImageBitmap(bmp);
-                }
+                setViewsForArticleFromCache();
             }
         }
+    }
+
+    private void setViewsForArticleFromCache() {
+        LocalArticle outerArticle = getArguments().getParcelable(LocalArticle.class.getSimpleName());
+
+        mTitle.setText(outerArticle.getTitle());
+        mAuthor.setText(outerArticle.getAuthor());
+        mDescription.setText(outerArticle.getDescription());
+        mLink.setText(outerArticle.getUrl());
+
+        Bitmap bmp = null;
+        if (outerArticle.getCompressedImage() != null) {
+            bmp = BitmapFactory.decodeByteArray(outerArticle.getCompressedImage(),
+                    0,
+                    outerArticle.getCompressedImage().length);
+        }
+
+        if (bmp != null) {
+            mFeedImage.setImageBitmap(bmp);
+        }
+    }
+
+    private void setViewsForArticleFromInternet() {
+        Article outerArticle = getArguments().getParcelable(Article.class.getSimpleName());
+
+        mTitle.setText(outerArticle.getTitle());
+        mAuthor.setText(outerArticle.getAuthor());
+        mDescription.setText(outerArticle.getDescription());
+        mLink.setText(outerArticle.getUrl());
+        Glide.with(getActivity())
+                .load(outerArticle.getUrlToImage())
+                .into(mFeedImage);
     }
 
     @Override

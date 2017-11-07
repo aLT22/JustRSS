@@ -124,7 +124,6 @@ public class LocalArticle extends RealmObject implements Parcelable {
 
     @Ignore
     public static final Parcelable.Creator<LocalArticle> CREATOR = new Parcelable.Creator<LocalArticle>() {
-        // распаковываем объект из Parcel
         public LocalArticle createFromParcel(Parcel in) {
             return new LocalArticle(in);
         }

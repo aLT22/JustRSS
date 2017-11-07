@@ -18,8 +18,4 @@ public interface NewYorkTimesService {
     Observable<FeedResponse> getObservableFeed(@Query("sortBy") String sortBy,
                                                @Query("apiKey") String apiKey);
 
-    @GET(AppUtilities.BBC_ARTICLES_SOURCE)
-    Call<FeedResponse> getCallFeed(@Query("sortBy") String sortBy,
-                                   @Query("apiKey") String apiKey);
-
 }

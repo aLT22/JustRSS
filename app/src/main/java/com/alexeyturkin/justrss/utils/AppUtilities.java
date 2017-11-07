@@ -16,8 +16,6 @@ public class AppUtilities {
     private AppUtilities() {
     }
 
-    public static final String COMPLETE_FEED_URL = "https://newsapi.org/v1/articles?source=bbc-news&sortBy=top&apiKey=6f80087bb0ff4f3184424dbe9a22499c";
-
     public static final String API_KEY = "6f80087bb0ff4f3184424dbe9a22499c";
 
     public static final String BASE_URL = "https://newsapi.org/v1/";
@@ -38,70 +36,31 @@ public class AppUtilities {
 
     public static class Connectivity {
 
-        /**
-         * Get the network info
-         *
-         * @param context
-         * @return
-         */
         public static NetworkInfo getNetworkInfo(Context context) {
             ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
             return cm.getActiveNetworkInfo();
         }
 
-        /**
-         * Check if there is any connectivity
-         *
-         * @param context
-         * @return
-         */
         public static boolean isConnected(Context context) {
             NetworkInfo info = Connectivity.getNetworkInfo(context);
             return (info != null && info.isConnected());
         }
 
-        /**
-         * Check if there is any connectivity to a Wifi network
-         *
-         * @param context
-         * @param type
-         * @return
-         */
         public static boolean isConnectedWifi(Context context) {
             NetworkInfo info = Connectivity.getNetworkInfo(context);
             return (info != null && info.isConnected() && info.getType() == ConnectivityManager.TYPE_WIFI);
         }
 
-        /**
-         * Check if there is any connectivity to a mobile network
-         *
-         * @param context
-         * @param type
-         * @return
-         */
         public static boolean isConnectedMobile(Context context) {
             NetworkInfo info = Connectivity.getNetworkInfo(context);
             return (info != null && info.isConnected() && info.getType() == ConnectivityManager.TYPE_MOBILE);
         }
 
-        /**
-         * Check if there is fast connectivity
-         *
-         * @param context
-         * @return
-         */
         public static boolean isConnectedFast(Context context) {
             NetworkInfo info = Connectivity.getNetworkInfo(context);
             return (info != null && info.isConnected() && Connectivity.isConnectionFast(info.getType(), info.getSubtype()));
         }
 
-        /**
-         * Check if the connection is fast
-         *
-         * @param type
-         * @param subType
-         * @return
-         */
         public static boolean isConnectionFast(int type, int subType) {
             if (type == ConnectivityManager.TYPE_WIFI) {
                 return true;
@@ -127,10 +86,11 @@ public class AppUtilities {
                         return true; // ~ 1-23 Mbps
                     case TelephonyManager.NETWORK_TYPE_UMTS:
                         return true; // ~ 400-7000 kbps
-            /*
-             * Above API level 7, make sure to set android:targetSdkVersion
-             * to appropriate level to use these
-             */
+
+                    /*
+                    * For low-level API
+                    * */
+
                     case TelephonyManager.NETWORK_TYPE_EHRPD: // API level 11
                         return true; // ~ 1-2 Mbps
                     case TelephonyManager.NETWORK_TYPE_EVDO_B: // API level 9

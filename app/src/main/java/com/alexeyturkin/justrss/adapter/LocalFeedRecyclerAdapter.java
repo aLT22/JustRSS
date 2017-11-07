@@ -58,8 +58,6 @@ public class LocalFeedRecyclerAdapter extends RecyclerView.Adapter<LocalFeedRecy
         if (item.getCompressedImage() != null) {
             bmp = BitmapFactory.decodeByteArray(item.getCompressedImage(), 0, item.getCompressedImage().length);
         }
-        /*Bitmap mutableBitmap = bmp.copy(Bitmap.Config.ARGB_8888, true);
-        Canvas canvas = new Canvas(mutableBitmap);*/
 
         if (bmp != null) {
             holder.mImage.setImageBitmap(bmp);
@@ -81,11 +79,6 @@ public class LocalFeedRecyclerAdapter extends RecyclerView.Adapter<LocalFeedRecy
     public void updateWholeFeed(List<LocalArticle> newArticles) {
         mList = new ArrayList<>();
         mList.addAll(newArticles);
-        this.notifyDataSetChanged();
-    }
-
-    public void updateFeedOneByOne(LocalArticle newArticle) {
-        mList.add(newArticle);
         this.notifyDataSetChanged();
     }
 

@@ -117,7 +117,6 @@ public class Article implements Parcelable {
     }
 
     public static final Parcelable.Creator<Article> CREATOR = new Parcelable.Creator<Article>() {
-        // распаковываем объект из Parcel
         public Article createFromParcel(Parcel in) {
             return new Article(in);
         }
